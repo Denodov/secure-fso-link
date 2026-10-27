@@ -1,11 +1,11 @@
-# Local settings and credentials
+# credentials
 .env
 .env.*
 !.env.example
 secrets/
 *.key
 
-# Python environments and caches
+# python 
 __pycache__/
 *.py[cod]
 .venv/
@@ -14,7 +14,7 @@ venv/
 .mypy_cache/
 .ruff_cache/
 
-# Firmware build output
+# build output
 build/
 Debug/
 Release/
@@ -26,7 +26,7 @@ Release/
 *.map
 *.d
 
-# Editor and operating-system files
+# editor and OS files
 .idea/
 *.swp
 *.swo
