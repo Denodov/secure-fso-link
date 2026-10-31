@@ -16,6 +16,7 @@ venv/
 
 # build output
 build/
+compile_commands.json
 Debug/
 Release/
 *.o
