@@ -7,15 +7,22 @@ LINKER_SCRIPT = STM32F303K8Tx_FLASH.ld
 
 MCUFLAGS = -mcpu=cortex-m4 -mthumb
 CPPFLAGS = -DSTM32F303x8 \
+		   -Idrivers \
            -ICMSIS/Core/Include \
            -ICMSIS/Device/Include
+
 CFLAGS = $(MCUFLAGS) -std=c11 -Wall -Wextra -O0 -g3 \
          -ffunction-sections -fdata-sections -MMD -MP
+
 LDFLAGS = $(MCUFLAGS) -T$(LINKER_SCRIPT) \
           --specs=nano.specs --specs=nosys.specs \
           -Wl,--gc-sections -Wl,-Map=$(BUILD)/firmware.map
 
-C_SOURCES = src/main.c system/system_stm32f3xx.c
+C_SOURCES = src/main.c \
+			system/system_stm32f3xx.c \
+			drivers/time.c \
+			drivers/clock.c
+
 ASM_SOURCES = startup/startup_stm32f303x8.s
 OBJS = $(addprefix $(BUILD)/,$(C_SOURCES:.c=.o) $(ASM_SOURCES:.s=.o))
 
