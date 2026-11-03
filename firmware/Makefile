@@ -21,7 +21,8 @@ LDFLAGS = $(MCUFLAGS) -T$(LINKER_SCRIPT) \
 C_SOURCES = src/main.c \
 			system/system_stm32f3xx.c \
 			drivers/time.c \
-			drivers/clock.c
+			drivers/clock.c \
+			drivers/uart.c
 
 ASM_SOURCES = startup/startup_stm32f303x8.s
 OBJS = $(addprefix $(BUILD)/,$(C_SOURCES:.c=.o) $(ASM_SOURCES:.s=.o))

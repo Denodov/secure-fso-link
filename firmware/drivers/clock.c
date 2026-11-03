@@ -51,8 +51,9 @@ int clock_init(void) {
 
     SystemCoreClockUpdate(); // system clock now 64MHz
 
-    RCC->AHBENR |= RCC_AHBENR_GPIOAEN; // enable GPIO A
-    RCC->AHBENR |= RCC_AHBENR_GPIOBEN; // enable GPIO B
-
+    RCC->AHBENR |= RCC_AHBENR_GPIOAEN;    // enable GPIO A
+    RCC->AHBENR |= RCC_AHBENR_GPIOBEN;    // enable GPIO B
+    RCC->APB1ENR |= RCC_APB1ENR_USART2EN; // enable clock for UART peripheral
+ 
     return 0; 
 }

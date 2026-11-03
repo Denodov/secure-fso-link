@@ -1,7 +1,10 @@
 #include "stm32f303x8.h"
-#include "../drivers/clock.h"
 #include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+#include "../drivers/clock.h"
 #include "../drivers/time.h"
+#include "../drivers/uart.h"
 
 static void system_init(void) {
     // PB3 is set on bits 6-7 
@@ -16,9 +19,23 @@ static void system_init(void) {
 int main(void) {
     clock_init();
     system_init(); 
+    uart_init();
+
+    uart_printf("Interrupt test!\r\n");
 
     while (true) {
-        GPIOB->ODR ^= (1u << 3); // toggles PB3 (onboard LED) 
-        delay(1000);
+        GPIOB->ODR ^= (1u << 3);
+        delay(500);
     }
+
+    /*
+    while (true) {
+        char msg[64] = {0};
+
+        uart_receive(msg, sizeof(msg) - 1, 2000);
+
+        uart_printf("Message: %s\r\n", msg); 
+
+    }
+    */
 }
