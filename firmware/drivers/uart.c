@@ -114,8 +114,8 @@ void uart_init() {
     USART2->CR1 |= USART_CR1_RE; 
     
     // Set USART to alternate function so it transmits to the ST-Link
-    /* Each I/O pin has a multiplexer with up to sixteen alternate function inputs (AF0 to AF15) that
-       can be configured through the GPIOx_AFRL (for pin 0 to 7) and GPIOx_AFRH (for pin 8 to 15) registers */
+    /* "Each I/O pin has a multiplexer with up to sixteen alternate function inputs (AF0 to AF15) that
+       can be configured through the GPIOx_AFRL (for pin 0 to 7) and GPIOx_AFRH (for pin 8 to 15) registers" */
     // USART1 (PA9/PA10), USART2 (PA2/PA3) or USB
 
     // USART1 transmit (PA9)
