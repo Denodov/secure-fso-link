@@ -5,28 +5,26 @@
 
     outputs = { nixpkgs, ... }:
         let
-            pkgs = import nixpkgs {
-                system = "x86_64-linux";
-            };
+            systems = [
+                "x86_64-linux"
+                "aarch64-linux"
+                "x86_64-darwin"
+                "aarch64-darwin"
+            ];
         in {
-            devShells.x86_64-linux.default = pkgs.mkShell {
-                packages = with pkgs; [
-                    gcc-arm-embedded
-                    cmake
-                    ninja
-                    gnumake
-                    openocd
-                    typst
-
-                    (python3.withPackages (ps: with ps; [
-                        pyserial
-                        numpy
-                        pandas
-                        matplotlib
-                        pytest
-                    ]))
-                ];
+            devShells = nixpkgs.lib.genAttrs systems (system:
+                let
+                    pkgs = import nixpkgs { inherit system; };
+                in {
+                    default = pkgs.mkShell {
+                        packages = with pkgs; [
+                            gcc-arm-embedded
+                            gnumake
+                            stlink
+                            picocom
+                            bear
+                        ];
+                    };
+                });
             };
-        };
 }
-
