@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <string.h>
 #include "udp.h"
 
 static void assemble_udp(char* data, uint32_t data_length) {

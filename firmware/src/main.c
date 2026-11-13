@@ -21,21 +21,7 @@ int main(void) {
     system_init(); 
     uart_init();
 
-    uart_printf("Interrupt test!\r\n");
-
-    while (true) {
-        GPIOB->ODR ^= (1u << 3);
-        delay(500);
+    while(true) {
+        uart_process();
     }
-
-    /*
-    while (true) {
-        char msg[64] = {0};
-
-        uart_receive(msg, sizeof(msg) - 1, 2000);
-
-        uart_printf("Message: %s\r\n", msg); 
-
-    }
-    */
 }

@@ -2,30 +2,40 @@
 #include "uart.h"
 #include "clock.h"
 #include "time.h"
+#include "../src/ring_buffer.h"
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 
 #define MAX_USART_BUF 1000
+#define RX_CAPACITY 256
 
-static int uart_enabled_f = 0;
+static uint8_t usb_rx_storage[RX_CAPACITY];
+static uint8_t fso_rx_storage[RX_CAPACITY];
+
+static rbd_t usb_rx;
+static rbd_t fso_rx;
+
+// count bytes dropped due to full buffer
+static volatile uint32_t usb_dropped = 0;
+static volatile uint32_t fso_dropped = 0;
 
 void uart_printf(char *format, ...);
 
-void uart_print_byte(char c) {
-    if (!uart_enabled_f) {
-    return;
-    }
+void uart1_write_byte(uint8_t byte) {
+    while(!(USART1->ISR & USART_ISR_TXE)) {}
+    USART1->TDR = byte;
+}
 
-    while (!(USART2->ISR & USART_ISR_TXE)) {
-    }
-    USART2->TDR = c;
+void uart2_write_byte(uint8_t byte) {
+    while (!(USART2->ISR & USART_ISR_TXE)) {}
+    USART2->TDR = byte;
 }
 
 void uart_printstr(char *s) {
     char *curr = s;
     while (*curr != '\0') {
-        uart_print_byte(*curr);
+        uart2_write_byte(*curr);
         curr++;
     }
 }
@@ -45,40 +55,47 @@ void uart_printf(char *format, ...) {
 
     uart_printstr(buf);
 }
-/*
-int uart_receive(char *buf, unsigned count, uint32_t timeout_ms) {
-    uint32_t start = millis();
-    unsigned received = 0;
 
-    while (received < count) {
-        if ((uint32_t)(millis() - start) >= timeout_ms) {
-            return -1; // timed out 
-        }
+// drain buffers
+void uart_process(void) {
+    uint8_t byte;
 
-        if (USART2->ISR & USART_ISR_ORE) {
-            USART2->ICR = USART_ICR_ORECF;
-        }
-
-        if (USART2->ISR & USART_ISR_RXNE) {
-            buf[received++] = (char)USART2->RDR;
+    if(USART1->ISR & USART_ISR_TXE) {
+        if(ring_buffer_read(usb_rx, &byte) == 0) {
+            USART1->TDR = byte;
         }
     }
-
-    return 0; // received all bytes 
+     if(USART2->ISR & USART_ISR_TXE) {
+        if(ring_buffer_read(fso_rx, &byte) == 0) {
+            USART2->TDR = byte;
+        }
+    }
 }
 
+void USART1_IRQHandler(void) {
+    if (USART1->ISR & USART_ISR_RXNE) {
+        uint8_t byte = (uint8_t)USART1->RDR; // clears RXNE
+            if(ring_buffer_write(fso_rx, &byte) != 0) {
+                fso_dropped++;
+            }
+    }
+    if (USART1->ISR & USART_ISR_ORE) {
+        // clear overrun
+        USART1->ICR = USART_ICR_ORECF;
+    }
+}
 void USART2_IRQHandler(void) {
     if (USART2->ISR & USART_ISR_RXNE) {
         uint8_t byte = (uint8_t)USART2->RDR; // clears RXNE
-        uart_print_byte((char)byte);
+            if(ring_buffer_write(usb_rx, &byte) != 0) {
+                usb_dropped++;
+            }
     }
-
     if (USART2->ISR & USART_ISR_ORE) {
         // clear overrun
         USART2->ICR = USART_ICR_ORECF;
     }
 }
-*/
 
 void uart_init() {
     /* CR1 = 0: USART disabled, 8 bit, no parity, 16x oversampling
@@ -92,27 +109,29 @@ void uart_init() {
     USART2->CR2 = 0; 
     USART2->CR3 = 0;
 
-    /* For prototype, we will use 9.6kbps baudrate & oversampling by 16.
-       Switch to higher baudrate and less sampling upon reliable link.*/ 
-
     /* === USART for FSO ===
-     * set baudrate to 9600
+     * match USB and FSO baudrates to simplify things.
+     * set baudrate to 115200
      * USART1 is on APB2, so clock freq. = 64MHz
-     * 64MHz/9600 = ~6667 = 1A0B */
-    USART1->BRR = (0x1A0B);
+     * 64MHz/115200 = ~556 = 22C */
+    USART1->BRR = (0x22c); 
+    // USART1->BRR = (0x1A0B); // 9600
 
     /* === USART for USB ===
      * set baudrate to 115200
      * USART2 is on APB1, so clock freq. = 32MHz
      * 32MHz/115200 = ~278 = 116 */
-    USART2->BRR = (0x116); 
-
+    USART2->BRR = (0x116);
+    
     // Enable transmit/receive for USART1 & USART2 
     USART1->CR1 |= USART_CR1_TE; 
     USART1->CR1 |= USART_CR1_RE;
     USART2->CR1 |= USART_CR1_TE; 
     USART2->CR1 |= USART_CR1_RE; 
     
+    // make USART1 be idle low so laser is off when idling
+    USART1->CR2 |= USART_CR2_TXINV | USART_CR2_RXINV;
+
     // Set USART to alternate function so it transmits to the ST-Link
     /* "Each I/O pin has a multiplexer with up to sixteen alternate function inputs (AF0 to AF15) that
        can be configured through the GPIOx_AFRL (for pin 0 to 7) and GPIOx_AFRH (for pin 8 to 15) registers" */
@@ -149,9 +168,27 @@ void uart_init() {
     USART1->CR1 |= USART_CR1_UE;
     USART2->CR1 |= USART_CR1_UE; 
 
-    uart_enabled_f = 1;
+    rb_attr_t attr = {
+        .s_elem = sizeof(uint8_t),
+        .n_elem = RX_CAPACITY,
+        .buffer = usb_rx_storage,
+    };
 
-//    NVIC_EnableIRQ(USART2_IRQn);
-//    USART2->CR1 |= USART_CR1_RXNEIE; // enable receive interrupts
+    // Initialize USB ring buffer
+    if(ring_buffer_init(&usb_rx, &attr) != 0) {
+        while(true) {} // initialization failed 
+    }
+
+    attr.buffer = fso_rx_storage;
+
+    // Initialize FSO ring buffer
+    if(ring_buffer_init(&fso_rx, &attr) != 0) {
+        while(true) {} // initialization failed
+    }
+
+    // enable interrupts
+    NVIC_EnableIRQ(USART2_IRQn);
+    NVIC_EnableIRQ(USART1_IRQn);
+    USART2->CR1 |= USART_CR1_RXNEIE; 
+    USART1->CR1 |= USART_CR1_RXNEIE;
 }
-
