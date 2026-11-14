@@ -3,6 +3,13 @@
 #include <stdio.h>
 #include <string.h>
 
+/* Roundtrip test
+ * Tests three patterns:
+ * - All zeroes
+ * - No zeroes
+ * - Scrambled bytes: each byte is the previous one + 37, wrapping at 256,
+ *   so all 256 byte values appear before the pattern repeats
+ */
 static void test_roundtrip(void) {
     uint8_t in[300], enc[320], dec[300]; // enc 320 because 300 byte input needs
                                          // at most 300 + 2 overhead + 1 delimiter
@@ -10,9 +17,12 @@ static void test_roundtrip(void) {
     for(size_t len = 0; len <= 300; len++) {
         for(int pattern = 0; pattern < 3; pattern ++) {
             for(size_t i = 0; i < len; i++) {
-                if(pattern == 0) in[i] = 0x00; // all zeroes
-                else if(pattern == 1) in[i] = 0xAA; // no zeroes (hits 254 boundary)
-                else in[i] = (uint8_t)((i * 37u + 11u) % 256u); // random value
+                if(pattern == 0) 
+                    in[i] = 0x00; // all zeroes
+                else if(pattern == 1) 
+                    in[i] = 0xAA; // no zeroes (hits 254 boundary)
+                else 
+                    in[i] = (uint8_t)((i * 37u + 11u) % 256u); // scrambled bytes 
             }
 
             size_t enc_len = 0, dec_len = 0;
@@ -29,11 +39,18 @@ static void test_roundtrip(void) {
     }
 }
 
-static void test_malformed(void) {
+/* Check if bad inputs are rejected
+ * 1. code points past the end of the block
+ * 2. check if there's a zero in the frame
+ * 3. check for empty frame 
+ * 4. decode into buffer too small 
+ * 5. encode into buffer too small
+ */
+static void test_bad(void) {
     uint8_t out[16];
     size_t n;
 
-    const uint8_t bad1[] = {0x05, 0x41}; // code points past the end
+    const uint8_t bad1[] = {0x05, 0x41}; // code points past the end of the block
     const uint8_t bad2[] = {0x03, 0x41, 0x00}; // zero inside frame
     int rc;
 
@@ -44,15 +61,15 @@ static void test_malformed(void) {
     rc = frame_decode(bad1, 0, out, sizeof(out), &n); // empty frame
     assert(rc == -1);
 
-    // output too small by one
-    const uint8_t msg[] = {0x11, 0x22, 0x33};
-    uint8_t small[4];
+    // encode into output array too small by one
+    const uint8_t msg[] = {0x11, 0x22, 0x33}; // encodes into 5 bytes (04 11 22 33 00)
+    uint8_t small[4];                         // but array is sized 4
     rc = frame_encode(msg, sizeof(msg), small, sizeof(small), &n);
     assert(rc == -1);
 
-    // decode into too small buffer
-    const uint8_t enc[] = {0x04, 0x11, 0x22, 0x33};
-    uint8_t tiny[2];
+    // decode into output array too small by one
+    const uint8_t enc[] = {0x04, 0x11, 0x22, 0x33}; // decodes into 3 bytes
+    uint8_t tiny[2];                                // but array is sized 2
     rc = frame_decode(enc, sizeof(enc), tiny, sizeof(tiny), &n);
     assert(rc == -1);
 }
@@ -74,8 +91,9 @@ int main(void) {
                 message, sizeof(message),
                 encoded, sizeof(encoded),
                 &encoded_len) == 0); // did encoding succeed?
-    
-    assert(encoded_len > 0); // check if output exists
+                                     //
+    // check if output exists
+    assert(encoded_len > 0); 
     // check if final byte is 0x00 (frame delimiter)
     assert(encoded[encoded_len - 1] == 0); 
 
@@ -96,7 +114,7 @@ int main(void) {
     assert(memcmp(message, decoded, sizeof(message)) == 0);
 
     test_roundtrip();
-    test_malformed();
+    test_bad();
 
     puts("Success. All bytes match.");
     return 0;

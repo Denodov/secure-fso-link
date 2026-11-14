@@ -56,7 +56,7 @@ void uart_printf(char *format, ...) {
     uart_printstr(buf);
 }
 
-// drain buffers
+/* drain buffers
 void uart_process(void) {
     uint8_t byte;
 
@@ -71,6 +71,7 @@ void uart_process(void) {
         }
     }
 }
+*/
 
 void USART1_IRQHandler(void) {
     if (USART1->ISR & USART_ISR_RXNE) {
@@ -79,11 +80,15 @@ void USART1_IRQHandler(void) {
                 fso_dropped++;
             }
     }
-    if (USART1->ISR & USART_ISR_ORE) {
-        // clear overrun
-        USART1->ICR = USART_ICR_ORECF;
+    // check for overrun, framing, or noise errors
+    if (USART1->ISR & (USART_ISR_ORE | USART_ISR_FE | USART_ISR_NE)) {
+        // clear flags 
+        USART1->ICR = USART_ICR_ORECF |
+                      USART_ICR_FECF  |
+                      USART_ICR_NCF;
     }
 }
+
 void USART2_IRQHandler(void) {
     if (USART2->ISR & USART_ISR_RXNE) {
         uint8_t byte = (uint8_t)USART2->RDR; // clears RXNE
@@ -91,10 +96,21 @@ void USART2_IRQHandler(void) {
                 usb_dropped++;
             }
     }
+    // check for overrun, framing, or noise errors
     if (USART2->ISR & USART_ISR_ORE) {
-        // clear overrun
-        USART2->ICR = USART_ICR_ORECF;
+        // clear flags
+        USART2->ICR = USART_ICR_ORECF | 
+                      USART_ICR_FECF  |
+                      USART_ICR_NCF;  
     }
+}
+
+int uart_usb_read(uint8_t *b) {
+    return ring_buffer_read(usb_rx, b);
+}
+
+int uart_fso_read(uint8_t *b) {
+    return ring_buffer_read(fso_rx, b);
 }
 
 void uart_init() {

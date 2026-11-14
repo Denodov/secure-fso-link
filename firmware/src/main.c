@@ -5,6 +5,7 @@
 #include "../drivers/clock.h"
 #include "../drivers/time.h"
 #include "../drivers/uart.h"
+#include "../../chat/chat.h"
 
 static void system_init(void) {
     // PB3 is set on bits 6-7 
@@ -22,6 +23,6 @@ int main(void) {
     uart_init();
 
     while(true) {
-        uart_process();
+        chat_poll();
     }
 }

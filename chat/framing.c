@@ -2,6 +2,7 @@
 
 /* 
  * COBS framing
+ * [DATA/ACK][COUNTER][PAYLOAD][CHECK]
  * Encoding:
  * 1. Leave first spot blank
  * 2. go through data one byte at a time
@@ -9,15 +10,18 @@
  * 4. if byte is zero, go back and write the counter into the blank spot.
  * 5. leave a new blank spot and restart the counter
  * 6. at the end, fill in the last blank spot and add the 0x00 end marker
+ *
  * Ex. original msg: 48 00 69 FF
  *     sent msg:     02 48 03 69 FF 00
  *     02 means "1 byte of data, then a zero"
  *     03 means "2 bytes of data, then end of frame"
+ *
  * Decoding:
  * 1. read a number
  * 2. copy that number minus one byte to the output
  * 3. put a zero back, unless code was FF or this was last block
  * 4. repeat until done
+ *
  * Ex. encoded msg: 02 48 03 69 FF
  *     read 02 -> copy 1 byte -> 48 -> put a zero back
  *     output so far: 48 00
@@ -47,7 +51,7 @@ int frame_encode (const uint8_t *packet,
      * Code: number of bytes until the next zero, counting itself
      * Code index: position in the array where the code goes.
      * */
-    size_t code_indx = 0; // where current block's code byte lives
+    size_t code_indx = 0; // location of current block's code byte 
     size_t out_indx  = 1; // next free output slot
                           // 0 reserved for code_indx
     uint8_t code     = 1; // distance to block end
@@ -83,7 +87,7 @@ int frame_encode (const uint8_t *packet,
     }
     output[code_indx] = code;
 
-    /* delimiter */
+    // delimiter
     if(out_indx >= output_capacity) {
         return -1;
     }
@@ -108,7 +112,7 @@ int frame_decode(const uint8_t *frame,
         return -1;
     }
     
-    size_t in_indx = 0; // read cursor: next byte to read from encoded frame
+    size_t in_indx = 0;  // read cursor: next byte to read from encoded frame
     size_t out_indx = 0; // write cursor: next free slot in the decoded packet
 
     while(in_indx < frame_len) {
@@ -133,7 +137,7 @@ int frame_decode(const uint8_t *frame,
             packet[out_indx++] = b;
         }
 
-        /* a block shorter than 0xFF implies a zero unless it is the last.*/
+        // a block shorter than 0xFF implies a zero unless it is the last
         if(code != 0xFF && in_indx < frame_len) {
             if(out_indx >= packet_capacity) {
                 return -1;

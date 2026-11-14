@@ -13,6 +13,9 @@ void uart_printnum(int16_t n);
 
 int uart_receive(char *buf, unsigned count, uint32_t timeout_ms);
 
-void uart_process(void);
+// void uart_process(void);
+
+int uart_usb_read(uint8_t *b);
+int uart_fso_read(uint8_t *b);
 
 #endif 
