@@ -125,6 +125,10 @@ void uart_init() {
     USART2->CR2 = 0; 
     USART2->CR3 = 0;
 
+    // switch USART1 clk to system clock
+    RCC->CFGR3 &= ~(RCC->CFGR3 & ~RCC_CFGR3_USART1SW)
+           | RCC_CFGR3_USART1SW_SYSCLK;
+
     /* === USART for FSO ===
      * match USB and FSO baudrates to simplify things.
      * set baudrate to 115200
@@ -196,6 +200,7 @@ void uart_init() {
     }
 
     attr.buffer = fso_rx_storage;
+
 
     // Initialize FSO ring buffer
     if(ring_buffer_init(&fso_rx, &attr) != 0) {
