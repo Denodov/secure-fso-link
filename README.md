@@ -1,14 +1,14 @@
 # Secure FSO Link
 
-**An encrypted, point-to-point free-space optical communication link using STM32 microcontrollers and Raspberry Pi.**
+**An encrypted, bidirectional free-space optical communication link using STM32 microcontrollers and Raspberry Pi.**
 
 ### Hardware
 
 | Component | Role |
 | --- | --- |
 | 2 × STM32F303K8 Nucleo-32 boards | Physical layer, framing, encryption, and link FSM |
-| Raspberry Pi computers | UART message interface, logging, and analysis; a shared Pi is an option |
-| Laser module and transistor drivers | Optical transmission |
+| Raspberry Pi computer | UART message interface, logging, and analysis; a shared Pi is an option |
+| Laser driver modules | Optical transmission |
 | Photodiodes, amplifiers, and comparators | Optical reception and bit recovery |
 | Lenses and optical filters | Signal collection and ambient-light rejection |
 | Servos | Automatic alignment |
