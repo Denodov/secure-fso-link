@@ -5,6 +5,8 @@
 #include "../drivers/clock.h"
 #include "../drivers/time.h"
 #include "../drivers/uart.h"
+#include "../drivers/dac.h"
+#include "../drivers/comp.h"
 #include "../../chat/chat.h"
 
 static void system_init(void) {
@@ -21,6 +23,8 @@ int main(void) {
     clock_init();
     system_init(); 
     uart_init();
+    dac_init();
+    comp_init();
 
     while(true) {
         chat_poll();

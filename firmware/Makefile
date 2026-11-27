@@ -25,6 +25,8 @@ C_SOURCES = src/main.c \
             drivers/time.c \
             drivers/clock.c \
             drivers/uart.c \
+			drivers/dac.c \
+			drivers/comp.c \
             src/ring_buffer.c
 
 CHAT_SOURCES = $(CHAT)/chat.c \

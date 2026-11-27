@@ -51,10 +51,13 @@ int clock_init(void) {
 
     SystemCoreClockUpdate(); // system clock now 64MHz
 
-    RCC->AHBENR |= RCC_AHBENR_GPIOAEN;    // enable GPIO A
-    RCC->AHBENR |= RCC_AHBENR_GPIOBEN;    // enable GPIO B
-    RCC->APB2ENR |= RCC_APB2ENR_USART1EN; // enable clock for USART1
-    RCC->APB1ENR |= RCC_APB1ENR_USART2EN; // enable clock for USART2 
- 
+    // Clock enable:
+    RCC->AHBENR |= RCC_AHBENR_GPIOAEN;    // GPIO A
+    RCC->AHBENR |= RCC_AHBENR_GPIOBEN;    // GPIO B
+    RCC->APB2ENR |= RCC_APB2ENR_USART1EN; // USART1
+    RCC->APB1ENR |= RCC_APB1ENR_USART2EN; // USART2 
+    RCC->APB1ENR |= RCC_APB1ENR_DAC2EN;   // DAC2
+    RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN; // COMP
+
     return 0; 
 }
